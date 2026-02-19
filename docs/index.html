@@ -1,285 +1,184 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>THE SHOGGOTH</title>
-<style>
-  :root{
-    --bg:#050205;
-    --fg:#f2f2f2;
-    --mut:rgba(242,242,242,.62);
-    --red:#ff2a2a;
-    --red2:#b3001e;
-    --hud:rgba(255,42,42,.75);
-    --line:rgba(255,42,42,.20);
-    --glass:rgba(0,0,0,.40);
-    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0;
-    background:
-      radial-gradient(1000px 700px at 50% 40%, rgba(255,42,42,.08), transparent 60%),
-      radial-gradient(900px 600px at 20% 30%, rgba(179,0,30,.10), transparent 58%),
-      radial-gradient(900px 600px at 80% 20%, rgba(179,0,30,.08), transparent 60%),
-      var(--bg);
-    color:var(--fg);
-    overflow:hidden;
-    font-family:var(--sans);
-  }
-
-  /* subtle vignette + blur veil like your reference */
-  .veil{
-    position:fixed; inset:0; pointer-events:none;
-    background:
-      radial-gradient(1200px 900px at 50% 40%, transparent 45%, rgba(0,0,0,.55) 100%),
-      linear-gradient(180deg, rgba(0,0,0,.55), transparent 18%, transparent 72%, rgba(0,0,0,.55));
-    filter: blur(.3px);
-    opacity:.95;
-  }
-
-  /* scanlines */
-  .scan{
-    position:fixed; inset:0; pointer-events:none;
-    background: repeating-linear-gradient(to bottom,
-      rgba(255,255,255,.06),
-      rgba(255,255,255,.06) 1px,
-      transparent 2px,
-      transparent 7px
-    );
-    mix-blend-mode: overlay;
-    opacity:.06;
-  }
-
-  /* HUD top bar */
-  .hud{
-    position:fixed; left:0; right:0; top:0;
-    padding:10px 14px;
-    border-bottom:1px solid var(--line);
-    background:linear-gradient(180deg, rgba(0,0,0,.70), rgba(0,0,0,.20));
-    font-family:var(--mono);
-    font-size:12px;
-    color:var(--hud);
-    display:flex;
-    justify-content:space-between;
-    gap:14px;
-    white-space:nowrap;
-  }
-  .hud .left{opacity:.95}
-  .hud .right{opacity:.85}
-
-  /* nav strip */
-  .nav{
-    position:fixed; left:0; right:0; top:42px;
-    padding:10px 14px;
-    display:flex; justify-content:space-between; align-items:center;
-    border-bottom:1px solid rgba(255,42,42,.10);
-    background:rgba(0,0,0,.22);
-    backdrop-filter: blur(6px);
-  }
-  .brand{
-    font-family:var(--mono);
-    letter-spacing:.14em;
-    color:rgba(255,42,42,.85);
-    font-size:12px;
-    text-transform:uppercase;
-  }
-  .links{
-    display:flex; gap:18px; align-items:center;
-    font-family:var(--mono);
-    font-size:11px;
-    letter-spacing:.12em;
-    text-transform:uppercase;
-  }
-  .links a{
-    color:rgba(242,242,242,.55);
-    text-decoration:none;
-    border-bottom:1px solid transparent;
-    padding-bottom:2px;
-  }
-  .links a:hover{
-    color:rgba(255,42,42,.85);
-    border-bottom-color:rgba(255,42,42,.35);
-  }
-
-  /* matrix rain layer (red) */
-  canvas#rain{
-    position:fixed; inset:0;
-    filter: blur(.35px);
-    opacity:.62;
-  }
-
-  /* center hero */
-  .wrap{
-    position:relative;
-    height:100%;
-    display:grid;
-    place-items:center;
-    padding:110px 18px 40px;
-    text-align:center;
-  }
-  .kicker{
-    font-family:var(--mono);
-    letter-spacing:.18em;
-    text-transform:uppercase;
-    color:rgba(255,42,42,.55);
-    font-size:12px;
-    margin-bottom:12px;
-  }
-  h1{
-    margin:0;
-    font-family:var(--mono);
-    letter-spacing:.06em;
-    font-size:min(82px, 10.2vw);
-    line-height:1.02;
-    color:rgba(245,245,245,.98);
-    text-shadow:
-      0 0 18px rgba(255,42,42,.12),
-      0 0 44px rgba(179,0,30,.10);
-  }
-  .sub{
-    margin:16px auto 12px;
-    max-width:980px;
-    font-family:var(--mono);
-    font-size:12px;
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    color:rgba(255,42,42,.75);
-  }
-  .jp{
-    margin:10px auto 0;
-    max-width:980px;
-    font-family:var(--mono);
-    font-size:12px;
-    color:rgba(255,42,42,.55);
-    letter-spacing:.08em;
-  }
-
-  /* formula / code block like reference */
-  .codebox{
-    margin:22px auto 0;
-    max-width:980px;
-    padding:14px 14px;
-    border:1px solid rgba(255,42,42,.16);
-    background:rgba(0,0,0,.26);
-    font-family:var(--mono);
-    font-size:12px;
-    color:rgba(242,242,242,.62);
-    letter-spacing:.02em;
-    text-align:left;
-  }
-  .codebox .red{color:rgba(255,42,42,.80)}
-  .footer{
-    position:fixed;
-    left:0; right:0; bottom:0;
-    padding:10px 14px;
-    border-top:1px solid rgba(255,42,42,.12);
-    background:linear-gradient(0deg, rgba(0,0,0,.72), rgba(0,0,0,.10));
-    font-family:var(--mono);
-    font-size:11px;
-    color:rgba(255,42,42,.55);
-    display:flex;
-    justify-content:center;
-    letter-spacing:.18em;
-    text-transform:uppercase;
-  }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Conformal // Coverage</title>
+  <style>
+    :root{
+      --bg:#05060a; --fg:#e9eef7; --mut:#9aa6bb;
+      --grid:rgba(140,170,255,.08);
+      --accent:#a9b7ff; --neon:#79ff9b; --warn:#ffd479;
+      --card:rgba(255,255,255,.04); --stroke:rgba(255,255,255,.10);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; color:var(--fg); background:
+        radial-gradient(1100px 600px at 15% 15%, rgba(169,183,255,.12), transparent 60%),
+        radial-gradient(900px 500px at 85% 10%, rgba(121,255,155,.08), transparent 55%),
+        linear-gradient(0deg, rgba(255,255,255,.03), rgba(255,255,255,0)),
+        var(--bg);
+      font-family:var(--sans);
+    }
+    .wrap{max-width:1100px; margin:0 auto; padding:28px 18px 48px}
+    .kicker{font-family:var(--mono); letter-spacing:.12em; color:var(--mut); font-size:12px; text-transform:uppercase}
+    h1{margin:.35rem 0 .25rem; font-size:28px}
+    .sub{color:var(--mut); max-width:72ch; line-height:1.45}
+    .grid{display:grid; grid-template-columns:1.25fr .75fr; gap:14px; margin-top:18px}
+    @media (max-width: 920px){ .grid{grid-template-columns:1fr} }
+    .card{
+      border:1px solid var(--stroke); background:var(--card); border-radius:18px;
+      padding:14px 14px 12px; position:relative; overflow:hidden;
+    }
+    .card:before{
+      content:""; position:absolute; inset:0; background:
+        linear-gradient(135deg, rgba(169,183,255,.10), transparent 40%),
+        linear-gradient(315deg, rgba(121,255,155,.08), transparent 42%);
+      opacity:.55; pointer-events:none;
+    }
+    .card > *{position:relative}
+    .card h2{margin:0 0 6px; font-size:14px; font-family:var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--accent)}
+    .hint{color:var(--mut); font-size:13px; line-height:1.45; margin:0 0 10px}
+    label{font-family:var(--mono); font-size:12px; color:var(--mut)}
+    input[type="range"]{width:260px}
+    .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+    .num{font-family:var(--mono); font-size:12px; color:var(--fg); padding:6px 8px; border:1px solid var(--stroke); border-radius:10px; background:rgba(0,0,0,.15)}
+    canvas{width:100%; height:320px; display:block; border-radius:14px; border:1px solid rgba(255,255,255,.10); background:
+      repeating-linear-gradient(to right, var(--grid), var(--grid) 1px, transparent 1px, transparent 48px),
+      repeating-linear-gradient(to bottom, var(--grid), var(--grid) 1px, transparent 1px, transparent 48px);
+    }
+    .big{
+      font-family:var(--mono); font-size:44px; margin:8px 0 0;
+      color:var(--neon); text-shadow: 0 0 18px rgba(121,255,155,.22);
+    }
+    .mini{font-family:var(--mono); font-size:12px; color:var(--mut); line-height:1.55}
+    .divider{height:1px; background:rgba(255,255,255,.10); margin:12px 0}
+  </style>
 </head>
 <body>
-<canvas id="rain"></canvas>
-<div class="scan"></div>
-<div class="veil"></div>
-
-<div class="hud">
-  <div class="left" id="hudLeft"></div>
-  <div class="right" id="hudRight"></div>
-</div>
-
-<div class="nav">
-  <div class="brand">matrix:agi</div>
-  <div class="links">
-    <a href="https://github.com/colonel1223/conformal-multimodal">github</a>
-    <a href="https://x.com/colonel_1223">x</a>
-    <a href="https://www.linkedin.com/in/spencercottrell/">linkedin</a>
-  </div>
-</div>
-
 <div class="wrap">
-  <div>
-    <div class="kicker">CLASSIFIED RESEARCH DOCUMENT // 機密研究文書</div>
-    <h1>THE SHOGGOTH</h1>
-    <div class="sub">MODEL 03.5 — 不定形の恐怖</div>
-    <div class="jp">人工汎用知能の存在論的リスク分解 — 現代の錬金術</div>
+  <div class="kicker">CLASSIFIED RESEARCH DOCUMENT // CONFORMAL</div>
+  <h1>Conformal Prediction: Coverage Monitor</h1>
+  <p class="sub">Interactive calibration + coverage visualization scaffold. Handcrafted UI, clean math vibes, no noisy “AI aesthetic.”</p>
 
-    <div class="codebox">
-      <div><span class="red">Deceptive alignment is indistinguishable from true alignment.</span></div>
-      <div style="margin-top:10px;opacity:.9">
-        // This page is a visualization shell. Connect real outputs by exporting JSON logs and rendering them here.
+  <div class="grid">
+    <section class="card">
+      <h2>Calibration curve (demo)</h2>
+      <p class="hint">Adjust target coverage α and see expected set size + coverage drift under synthetic shift.</p>
+
+      <div class="row">
+        <div>
+          <label>Target coverage</label><br>
+          <input id="cov" type="range" min="50" max="99" value="90">
+          <span class="num" id="covVal">90%</span>
+        </div>
+        <div>
+          <label>Shift severity</label><br>
+          <input id="shift" type="range" min="0" max="100" value="25">
+          <span class="num" id="shiftVal">25</span>
+        </div>
+        <div class="num">Observed ≈ <span id="obs">0.00</span>%</div>
       </div>
-    </div>
+
+      <div class="divider"></div>
+      <canvas id="c" width="960" height="320"></canvas>
+      <div class="mini">Replace the synthetic generator with real calibration scores + test-time drift logs.</div>
+    </section>
+
+    <aside class="card">
+      <h2>Status</h2>
+      <div class="mini">Coverage guarantee (theory): finite-sample, distribution-free.</div>
+      <div class="divider"></div>
+      <div class="mini">Target</div>
+      <div class="big" id="targetBig">90%</div>
+      <div class="divider"></div>
+      <div class="mini">Expected set size (demo)</div>
+      <div class="big" id="setSize">3</div>
+      <div class="mini">labels</div>
+      <div class="divider"></div>
+      <div class="mini">Repo: <a style="color:var(--accent);text-decoration:none" href="https://github.com/colonel1223/conformal-multimodal">conformal-multimodal</a></div>
+    </aside>
   </div>
 </div>
-
-<div class="footer">MOVE CURSOR TO INTERACT — THE ENTITY RESPONDS</div>
 
 <script>
-  // HUD timestamps (like your reference)
-  function pad(n){ return String(n).padStart(2,'0'); }
-  function stamp(d){
-    return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes());
-  }
-  const now = new Date();
-  document.getElementById("hudLeft").textContent =
-    "Today: "+stamp(now)+"    Last Updated: "+stamp(now);
-  document.getElementById("hudRight").textContent =
-    "Countdown: "+(286*24)+"h "+pad(now.getMinutes())+"m "+pad(now.getSeconds())+"s";
+  const $ = (id)=>document.getElementById(id);
+  function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
 
-  // Red matrix rain
-  const c = document.getElementById("rain");
-  const ctx = c.getContext("2d");
-  let w, h, cols, y;
-  const chars = "01";
-  function resize(){
-    w = c.width = window.innerWidth * devicePixelRatio;
-    h = c.height = window.innerHeight * devicePixelRatio;
-    const fontSize = 14 * devicePixelRatio;
-    cols = Math.floor(w / fontSize);
-    y = new Array(cols).fill(0).map(()=>Math.random()*h);
-    ctx.font = fontSize+"px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace";
-  }
-  window.addEventListener("resize", resize);
-  resize();
+  function draw(){
+    const target = +$("cov").value;
+    const shift  = +$("shift").value;
+    $("covVal").textContent = target + "%";
+    $("shiftVal").textContent = shift;
+    $("targetBig").textContent = target + "%";
 
-  let mx = -9999, my = -9999;
-  window.addEventListener("mousemove", (e)=>{ mx = e.clientX*devicePixelRatio; my = e.clientY*devicePixelRatio; });
+    // Synthetic observed coverage: drift increases with shift
+    const drift = (shift/100) * (12); // up to 12% drop (demo)
+    const observed = clamp(target - drift, 0, 100);
+    $("obs").textContent = observed.toFixed(2);
 
-  function frame(){
-    // fade
-    ctx.fillStyle = "rgba(0,0,0,0.08)";
-    ctx.fillRect(0,0,w,h);
+    // Synthetic set size: higher target => larger set, shift increases it a bit
+    const setSize = Math.round(1 + (target-50)/16 + (shift/100)*2);
+    $("setSize").textContent = setSize;
 
-    const fontSize = parseFloat(ctx.font);
-    for(let i=0;i<cols;i++){
-      const x = i*fontSize;
-      const ch = chars[(Math.random()*chars.length)|0];
+    const c = $("c"), ctx = c.getContext("2d");
+    ctx.clearRect(0,0,c.width,c.height);
 
-      // interaction "disturbance" around cursor (subtle)
-      const dy = y[i];
-      const dist = Math.hypot(x-mx, dy-my);
-      const glow = dist < 140*devicePixelRatio ? 0.9 : 0.38;
+    // axes
+    ctx.strokeStyle="rgba(255,255,255,.14)";
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(52, 18); ctx.lineTo(52, 298); ctx.lineTo(940, 298);
+    ctx.stroke();
 
-      ctx.fillStyle = "rgba(255,42,42,"+glow+")";
-      ctx.fillText(ch, x, dy);
-
-      y[i] += (fontSize * (0.65 + Math.random()*0.55));
-      if(y[i] > h) y[i] = 0;
+    // grid + labels
+    ctx.font="12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace";
+    ctx.fillStyle="rgba(154,166,187,.95)";
+    for(let i=0;i<=5;i++){
+      const y = 298 - i*(280/5);
+      ctx.strokeStyle="rgba(255,255,255,.06)";
+      ctx.beginPath(); ctx.moveTo(52,y); ctx.lineTo(940,y); ctx.stroke();
+      ctx.fillText(String(i*20)+"%", 12, y+4);
     }
-    requestAnimationFrame(frame);
+    ctx.fillText("expected", 70, 28);
+    ctx.fillText("observed", 70, 46);
+
+    // calibration curve: expected = x; observed = x - drift*(x/100)^1.2
+    function y(p){ return 298 - (p/100)*280; }
+    function x(p){ return 52 + (p/100)*(940-52); }
+
+    // expected diagonal
+    ctx.strokeStyle="rgba(169,183,255,.40)";
+    ctx.beginPath();
+    ctx.moveTo(x(0), y(0));
+    ctx.lineTo(x(100), y(100));
+    ctx.stroke();
+
+    // observed curve
+    ctx.strokeStyle="rgba(121,255,155,.70)";
+    ctx.beginPath();
+    for(let p=0;p<=100;p+=2){
+      const dd = drift * Math.pow(p/100, 1.2);
+      const o = clamp(p - dd, 0, 100);
+      if(p===0) ctx.moveTo(x(p), y(o));
+      else ctx.lineTo(x(p), y(o));
+    }
+    ctx.stroke();
+
+    // marker at target
+    const dd = drift * Math.pow(target/100, 1.2);
+    const oT = clamp(target - dd, 0, 100);
+    ctx.fillStyle="rgba(255,212,121,.95)";
+    ctx.beginPath(); ctx.arc(x(target), y(oT), 6, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle="rgba(233,238,247,.95)";
+    ctx.fillText(`target=${target}%  observed≈${oT.toFixed(2)}%  shift=${shift}`, 120, 28);
   }
-  frame();
+
+  ["cov","shift"].forEach(id => $(id).addEventListener("input", draw));
+  draw();
 </script>
 </body>
 </html>
