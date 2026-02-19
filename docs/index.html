@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Conformal // Coverage</title>
+  <style>
+    :root{
+      --bg:#05060a; --fg:#e9eef7; --mut:#9aa6bb;
+      --grid:rgba(140,170,255,.08);
+      --accent:#a9b7ff; --neon:#79ff9b; --warn:#ffd479;
+      --card:rgba(255,255,255,.04); --stroke:rgba(255,255,255,.10);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; color:var(--fg); background:
+        radial-gradient(1100px 600px at 15% 15%, rgba(169,183,255,.12), transparent 60%),
+        radial-gradient(900px 500px at 85% 10%, rgba(121,255,155,.08), transparent 55%),
+        linear-gradient(0deg, rgba(255,255,255,.03), rgba(255,255,255,0)),
+        var(--bg);
+      font-family:var(--sans);
+    }
+    .wrap{max-width:1100px; margin:0 auto; padding:28px 18px 48px}
+    .kicker{font-family:var(--mono); letter-spacing:.12em; color:var(--mut); font-size:12px; text-transform:uppercase}
+    h1{margin:.35rem 0 .25rem; font-size:28px}
+    .sub{color:var(--mut); max-width:72ch; line-height:1.45}
+    .grid{display:grid; grid-template-columns:1.25fr .75fr; gap:14px; margin-top:18px}
+    @media (max-width: 920px){ .grid{grid-template-columns:1fr} }
+    .card{
+      border:1px solid var(--stroke); background:var(--card); border-radius:18px;
+      padding:14px 14px 12px; position:relative; overflow:hidden;
+    }
+    .card:before{
+      content:""; position:absolute; inset:0; background:
+        linear-gradient(135deg, rgba(169,183,255,.10), transparent 40%),
+        linear-gradient(315deg, rgba(121,255,155,.08), transparent 42%);
+      opacity:.55; pointer-events:none;
+    }
+    .card > *{position:relative}
+    .card h2{margin:0 0 6px; font-size:14px; font-family:var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--accent)}
+    .hint{color:var(--mut); font-size:13px; line-height:1.45; margin:0 0 10px}
+    label{font-family:var(--mono); font-size:12px; color:var(--mut)}
+    input[type="range"]{width:260px}
+    .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+    .num{font-family:var(--mono); font-size:12px; color:var(--fg); padding:6px 8px; border:1px solid var(--stroke); border-radius:10px; background:rgba(0,0,0,.15)}
+    canvas{width:100%; height:320px; display:block; border-radius:14px; border:1px solid rgba(255,255,255,.10); background:
+      repeating-linear-gradient(to right, var(--grid), var(--grid) 1px, transparent 1px, transparent 48px),
+      repeating-linear-gradient(to bottom, var(--grid), var(--grid) 1px, transparent 1px, transparent 48px);
+    }
+    .big{
+      font-family:var(--mono); font-size:44px; margin:8px 0 0;
+      color:var(--neon); text-shadow: 0 0 18px rgba(121,255,155,.22);
+    }
+    .mini{font-family:var(--mono); font-size:12px; color:var(--mut); line-height:1.55}
+    .divider{height:1px; background:rgba(255,255,255,.10); margin:12px 0}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">CLASSIFIED RESEARCH DOCUMENT // CONFORMAL</div>
+  <h1>Conformal Prediction: Coverage Monitor</h1>
+  <p class="sub">Interactive calibration + coverage visualization scaffold. Handcrafted UI, clean math vibes, no noisy “AI aesthetic.”</p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Calibration curve (demo)</h2>
+      <p class="hint">Adjust target coverage α and see expected set size + coverage drift under synthetic shift.</p>
+
+      <div class="row">
+        <div>
+          <label>Target coverage</label><br>
+          <input id="cov" type="range" min="50" max="99" value="90">
+          <span class="num" id="covVal">90%</span>
+        </div>
+        <div>
+          <label>Shift severity</label><br>
+          <input id="shift" type="range" min="0" max="100" value="25">
+          <span class="num" id="shiftVal">25</span>
+        </div>
+        <div class="num">Observed ≈ <span id="obs">0.00</span>%</div>
+      </div>
+
+      <div class="divider"></div>
+      <canvas id="c" width="960" height="320"></canvas>
+      <div class="mini">Replace the synthetic generator with real calibration scores + test-time drift logs.</div>
+    </section>
+
+    <aside class="card">
+      <h2>Status</h2>
+      <div class="mini">Coverage guarantee (theory): finite-sample, distribution-free.</div>
+      <div class="divider"></div>
+      <div class="mini">Target</div>
+      <div class="big" id="targetBig">90%</div>
+      <div class="divider"></div>
+      <div class="mini">Expected set size (demo)</div>
+      <div class="big" id="setSize">3</div>
+      <div class="mini">labels</div>
+      <div class="divider"></div>
+      <div class="mini">Repo: <a style="color:var(--accent);text-decoration:none" href="https://github.com/colonel1223/conformal-multimodal">conformal-multimodal</a></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+  const $ = (id)=>document.getElementById(id);
+  function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
+
+  function draw(){
+    const target = +$("cov").value;
+    const shift  = +$("shift").value;
+    $("covVal").textContent = target + "%";
+    $("shiftVal").textContent = shift;
+    $("targetBig").textContent = target + "%";
+
+    // Synthetic observed coverage: drift increases with shift
+    const drift = (shift/100) * (12); // up to 12% drop (demo)
+    const observed = clamp(target - drift, 0, 100);
+    $("obs").textContent = observed.toFixed(2);
+
+    // Synthetic set size: higher target => larger set, shift increases it a bit
+    const setSize = Math.round(1 + (target-50)/16 + (shift/100)*2);
+    $("setSize").textContent = setSize;
+
+    const c = $("c"), ctx = c.getContext("2d");
+    ctx.clearRect(0,0,c.width,c.height);
+
+    // axes
+    ctx.strokeStyle="rgba(255,255,255,.14)";
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(52, 18); ctx.lineTo(52, 298); ctx.lineTo(940, 298);
+    ctx.stroke();
+
+    // grid + labels
+    ctx.font="12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace";
+    ctx.fillStyle="rgba(154,166,187,.95)";
+    for(let i=0;i<=5;i++){
+      const y = 298 - i*(280/5);
+      ctx.strokeStyle="rgba(255,255,255,.06)";
+      ctx.beginPath(); ctx.moveTo(52,y); ctx.lineTo(940,y); ctx.stroke();
+      ctx.fillText(String(i*20)+"%", 12, y+4);
+    }
+    ctx.fillText("expected", 70, 28);
+    ctx.fillText("observed", 70, 46);
+
+    // calibration curve: expected = x; observed = x - drift*(x/100)^1.2
+    function y(p){ return 298 - (p/100)*280; }
+    function x(p){ return 52 + (p/100)*(940-52); }
+
+    // expected diagonal
+    ctx.strokeStyle="rgba(169,183,255,.40)";
+    ctx.beginPath();
+    ctx.moveTo(x(0), y(0));
+    ctx.lineTo(x(100), y(100));
+    ctx.stroke();
+
+    // observed curve
+    ctx.strokeStyle="rgba(121,255,155,.70)";
+    ctx.beginPath();
+    for(let p=0;p<=100;p+=2){
+      const dd = drift * Math.pow(p/100, 1.2);
+      const o = clamp(p - dd, 0, 100);
+      if(p===0) ctx.moveTo(x(p), y(o));
+      else ctx.lineTo(x(p), y(o));
+    }
+    ctx.stroke();
+
+    // marker at target
+    const dd = drift * Math.pow(target/100, 1.2);
+    const oT = clamp(target - dd, 0, 100);
+    ctx.fillStyle="rgba(255,212,121,.95)";
+    ctx.beginPath(); ctx.arc(x(target), y(oT), 6, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle="rgba(233,238,247,.95)";
+    ctx.fillText(`target=${target}%  observed≈${oT.toFixed(2)}%  shift=${shift}`, 120, 28);
+  }
+
+  ["cov","shift"].forEach(id => $(id).addEventListener("input", draw));
+  draw();
+</script>
+</body>
+</html>
