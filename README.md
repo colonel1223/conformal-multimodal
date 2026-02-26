@@ -83,3 +83,16 @@ Coverage guarantees verified under Gaussian, Cauchy (heavy-tailed), exponential,
 ## License
 
 MIT
+
+---
+
+## Research Ecosystem
+
+This library is part of a unified AI safety research program. See [colonel1223.net](https://colonel1223.net) for the full portfolio.
+
+| Related Project | Connection |
+|----------------|------------|
+| [alignment-tax-quantifier](https://github.com/colonel1223/alignment-tax-quantifier) | Uses conformal sets to quantify alignment uncertainty bounds |
+| [CHIMERA](https://github.com/colonel1223/CHIMERA) | Applies coverage analysis to hallucination confidence scores |
+| [SHOGGOTH](https://github.com/colonel1223/SHOGGOTH) | Visualizes what happens when uncertainty bounds are violated |
+| [Research Papers](https://github.com/colonel1223/ai-research-modern-alchemy) | Theoretical foundations for distribution-free safety guarantees |
