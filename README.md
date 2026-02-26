@@ -2,26 +2,11 @@
 
 **Teaching machines to say "I don't know."**
 
-## The problem
+Distribution-free uncertainty quantification for multimodal ML systems. When a model says 90% confident, conformal prediction guarantees it's right at least 90% of the time — no assumptions about the data distribution.
 
-A vision-language model says it's 94% confident. It's wrong. Conformal prediction fixes this with distribution-free, finite-sample coverage guarantees — when the system says 90% sure, it's actually right at least 90% of the time.
+## Why this matters
 
-## What's here
-
-Python library extending conformal methods to multimodal settings where calibration is hardest.
-
-## Structure
-
-```
-├── conformal/
-│   └── core/
-│       └── conformal_predictor.py   # Core prediction engine
-├── docs/
-│   ├── index.html                   # Documentation site
-│   └── .nojekyll
-├── setup.py                         # Package installation
-└── README.md
-```
+Neural network confidence scores are miscalibrated. A vision-language model reporting 94% confidence can be wrong 30%+ of the time. Conformal prediction provides mathematically guaranteed coverage without distributional assumptions. This library extends those guarantees to multimodal settings where each modality fails differently.
 
 ## Install
 
@@ -29,25 +14,63 @@ Python library extending conformal methods to multimodal settings where calibrat
 pip install -e .
 ```
 
-## Usage
+## Quick start
 
 ```python
-from conformal.core.conformal_predictor import ConformalPredictor
+from conformal.core import ConformalPredictor, MultimodalConformalPredictor
 
+# Single-modality
 predictor = ConformalPredictor(alpha=0.1)
-predictor.calibrate(cal_scores)
-prediction_set = predictor.predict(new_input)
+predictor.calibrate(calibration_scores)
+prediction_sets = predictor.predict(test_outputs)
+
+# Multimodal with per-modality calibration
+mm = MultimodalConformalPredictor(
+    alpha=0.1,
+    modalities=["vision", "language"],
+    aggregation="adaptive"  # weights by modality reliability
+)
+mm.calibrate({"vision": vis_scores, "language": lang_scores})
+joint_sets = mm.predict({"vision": vis_out, "language": lang_out})
 ```
 
-## Methods
+## What's implemented
 
-- Split conformal prediction with modality-aware nonconformity scores
-- Adaptive prediction sets that tighten under cross-modal agreement
-- Per-modality and joint coverage guarantees
+- `ConformalPredictor` — Split conformal with finite-sample correction. Classification and regression.
+- `MultimodalConformalPredictor` — Per-modality calibration with Bonferroni, adaptive, or max aggregation.
+- `calibration_error` — Expected Calibration Error (ECE) with binning.
+- `brier_score` — Probabilistic prediction quality.
+- `coverage_diagnostic` — Empirical coverage and set size analysis.
 
-## Status
+## Tests
 
-Active development. Core predictor functional, extending to vision-language and audio-text.
+```bash
+cd tests && python test_conformal.py
+```
+
+## Structure
+
+```
+├── conformal/
+│   ├── __init__.py
+│   └── core/
+│       ├── __init__.py
+│       ├── conformal_predictor.py   # Core: ConformalPredictor, MultimodalConformalPredictor
+│       └── calibration.py           # ECE, Brier score, coverage diagnostics
+├── tests/
+│   └── test_conformal.py            # Coverage guarantee verification
+├── docs/
+│   └── index.html                   # Documentation site
+├── setup.py
+├── requirements.txt
+└── README.md
+```
+
+## References
+
+- Vovk, Gammerman & Shafer (2005). *Algorithmic Learning in a Random World*
+- Romano, Patterson & Candès (2019). *Conformalized Quantile Regression*
+- Angelopoulos & Bates (2021). *A Gentle Introduction to Conformal Prediction*
 
 ## License
 
