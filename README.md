@@ -4,30 +4,50 @@
 
 ## The problem
 
-A vision-language model tells you it's 94% confident. It's wrong. This happens constantly, and it's not a minor inconvenience — it's a structural failure that kills people in medical imaging, autonomous driving, and anywhere else confidence scores get treated as probabilities.
+A vision-language model says it's 94% confident. It's wrong. Conformal prediction fixes this with distribution-free, finite-sample coverage guarantees — when the system says 90% sure, it's actually right at least 90% of the time.
 
-Conformal prediction fixes this. It provides distribution-free, finite-sample coverage guarantees — meaning when the system says "I'm 90% sure," it's actually right at least 90% of the time. No assumptions about the model. No assumptions about the data distribution. Math, not hope.
+## What's here
 
-## What this project does
+Python library extending conformal methods to multimodal settings where calibration is hardest.
 
-Extends conformal methods to multimodal settings where calibration is hardest — vision-language, audio-text — because each modality fails differently and the joint distribution is worse than either alone.
+## Structure
+
+```
+├── conformal/
+│   └── core/
+│       └── conformal_predictor.py   # Core prediction engine
+├── docs/
+│   ├── index.html                   # Documentation site
+│   └── .nojekyll
+├── setup.py                         # Package installation
+└── README.md
+```
+
+## Install
+
+```bash
+pip install -e .
+```
+
+## Usage
+
+```python
+from conformal.core.conformal_predictor import ConformalPredictor
+
+predictor = ConformalPredictor(alpha=0.1)
+predictor.calibrate(cal_scores)
+prediction_set = predictor.predict(new_input)
+```
 
 ## Methods
 
 - Split conformal prediction with modality-aware nonconformity scores
-- Adaptive prediction sets that tighten under high cross-modal agreement
+- Adaptive prediction sets that tighten under cross-modal agreement
 - Per-modality and joint coverage guarantees
 
-## Usage
+## Status
 
-```bash
-pip install -r requirements.txt
-python calibrate.py --model clip --data val_set/ --alpha 0.1
-```
-
-## Requirements
-
-Python 3.9+, PyTorch, NumPy, SciPy
+Active development. Core predictor functional, extending to vision-language and audio-text.
 
 ## License
 
