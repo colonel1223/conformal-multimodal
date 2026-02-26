@@ -1,76 +1,84 @@
 # conformal-multimodal
 
-**Teaching machines to say "I don't know."**
+Distribution-free uncertainty quantification for multimodal ML. Finite-sample coverage guarantees with no distributional assumptions.
 
-Distribution-free uncertainty quantification for multimodal ML systems. When a model says 90% confident, conformal prediction guarantees it's right at least 90% of the time — no assumptions about the data distribution.
+## Why
 
-## Why this matters
+Model confidence scores are miscalibrated. A system reporting 94% confidence can be wrong 30%+ of the time. Conformal prediction provides mathematically guaranteed prediction sets: when the method targets 90% coverage, it achieves ≥90% coverage on any distribution, for any model.
 
-Neural network confidence scores are miscalibrated. A vision-language model reporting 94% confidence can be wrong 30%+ of the time. Conformal prediction provides mathematically guaranteed coverage without distributional assumptions. This library extends those guarantees to multimodal settings where each modality fails differently.
+This library extends conformal methods to multimodal systems and streaming settings.
 
 ## Install
 
 ```bash
-pip install -e .
+pip install -e .          # core
+pip install -e ".[dev]"   # + pytest, mypy
 ```
+
+## Modules
+
+| Module | Method | Reference |
+|--------|--------|-----------|
+| `core/predictor` | Split conformal prediction | Vovk et al. (2005) |
+| `core/quantile` | Conformalized quantile regression (CQR) | Romano et al. (2019) |
+| `core/classification` | RAPS: regularized adaptive prediction sets | Angelopoulos et al. (2021) |
+| `multimodal/fusion` | Per-modality calibration + adaptive fusion | Novel |
+| `multimodal/mondrian` | Group-conditional conformal (Mondrian) | Vovk (2012) |
+| `online/tracker` | Adaptive conformal inference under shift | Gibbs & Candès (2021) |
+| `risk/control` | Learn-then-Test conformal risk control | Angelopoulos et al. (2022) |
+| `metrics/calibration` | ECE, Brier score, Brier decomposition | Naeini et al. (2015) |
+| `metrics/efficiency` | Set size, conditional coverage, stratified analysis | — |
 
 ## Quick start
 
 ```python
-from conformal.core import ConformalPredictor, MultimodalConformalPredictor
+from conformal import SplitConformalPredictor
 
-# Single-modality
-predictor = ConformalPredictor(alpha=0.1)
-predictor.calibrate(calibration_scores)
-prediction_sets = predictor.predict(test_outputs)
+cp = SplitConformalPredictor(alpha=0.1)
+cp.calibrate(cal_predictions, cal_labels)
+intervals = cp.predict(test_predictions)
+# intervals[i].lower, intervals[i].upper — guaranteed ≥ 90% coverage
+```
 
-# Multimodal with per-modality calibration
+```python
+from conformal import MultimodalConformalPredictor
+from conformal.multimodal import ModalityConfig
+
 mm = MultimodalConformalPredictor(
     alpha=0.1,
-    modalities=["vision", "language"],
-    aggregation="adaptive"  # weights by modality reliability
+    modalities=[ModalityConfig("vision"), ModalityConfig("language")],
+    fusion="adaptive",
 )
-mm.calibrate({"vision": vis_scores, "language": lang_scores})
-joint_sets = mm.predict({"vision": vis_out, "language": lang_out})
+mm.calibrate({"vision": v_cal, "language": l_cal}, {"vision": y, "language": y})
 ```
 
-## What's implemented
+```python
+from conformal import OnlineConformalTracker
 
-- `ConformalPredictor` — Split conformal with finite-sample correction. Classification and regression.
-- `MultimodalConformalPredictor` — Per-modality calibration with Bonferroni, adaptive, or max aggregation.
-- `calibration_error` — Expected Calibration Error (ECE) with binning.
-- `brier_score` — Probabilistic prediction quality.
-- `coverage_diagnostic` — Empirical coverage and set size analysis.
+tracker = OnlineConformalTracker(alpha=0.1, gamma=0.005)
+for score, y, pred in stream:
+    q_t, covered = tracker.update(score, y, pred)
+# Maintains coverage even under distribution shift
+```
 
-## Tests
+## Test
 
 ```bash
-cd tests && python test_conformal.py
+make test          # pytest
+make typecheck     # mypy
+make benchmark     # coverage-efficiency tables
 ```
 
-## Structure
-
-```
-├── conformal/
-│   ├── __init__.py
-│   └── core/
-│       ├── __init__.py
-│       ├── conformal_predictor.py   # Core: ConformalPredictor, MultimodalConformalPredictor
-│       └── calibration.py           # ECE, Brier score, coverage diagnostics
-├── tests/
-│   └── test_conformal.py            # Coverage guarantee verification
-├── docs/
-│   └── index.html                   # Documentation site
-├── setup.py
-├── requirements.txt
-└── README.md
-```
+Coverage guarantees verified under Gaussian, Cauchy (heavy-tailed), exponential, and mixture distributions with statistical hypothesis testing at significance level 0.01.
 
 ## References
 
-- Vovk, Gammerman & Shafer (2005). *Algorithmic Learning in a Random World*
-- Romano, Patterson & Candès (2019). *Conformalized Quantile Regression*
-- Angelopoulos & Bates (2021). *A Gentle Introduction to Conformal Prediction*
+1. Vovk, Gammerman, Shafer (2005). *Algorithmic Learning in a Random World.*
+2. Romano, Patterson, Candès (2019). *Conformalized Quantile Regression.* NeurIPS.
+3. Angelopoulos, Bates, Malik, Jordan (2021). *Uncertainty Sets for Image Classifiers.* ICLR.
+4. Vovk (2012). *Conditional Validity of Inductive Conformal Predictors.* AISTATS.
+5. Gibbs, Candès (2021). *Adaptive Conformal Inference Under Distribution Shift.* NeurIPS.
+6. Angelopoulos, Bates, Fisch, Lei, Schuster (2022). *Conformal Risk Control.* ICLR.
 
 ## License
 

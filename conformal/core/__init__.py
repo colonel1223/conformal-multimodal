@@ -1,2 +1,3 @@
-from .conformal_predictor import ConformalPredictor, MultimodalConformalPredictor
-from .calibration import calibration_error, brier_score, coverage_diagnostic
+from .predictor import SplitConformalPredictor
+from .quantile import ConformalizedQuantileRegressor
+from .classification import AdaptivePredictionSets
